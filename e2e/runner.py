@@ -1,6 +1,7 @@
 import random
 import os
 import time
+import sys
 
 from types import FunctionType
 
@@ -38,7 +39,18 @@ if __name__ == '__main__':
     Minindn.cleanUp()
     Minindn.verifyDependencies()
 
-    ndn = Minindn()
+    # 允许从命令行指定 topo 文件，和 README.mininet.md 的用法一致：
+    #   sudo -E python3 e2e/runner.py e2e/topo.big.conf
+    topo_file = sys.argv[1] if len(sys.argv) > 1 else None
+
+    # 确保使用仓库内刚编译的 ndnd（二进制在 ndnd/ 目录下）。
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    os.environ['PATH'] = repo_root + os.pathsep + os.environ.get('PATH', '')
+
+    if topo_file is None:
+        ndn = Minindn()
+    else:
+        ndn = Minindn(topoFile=os.path.abspath(topo_file))
     ndn.start()
 
     run(test_001.scenario_ndnd_fw)

@@ -1,6 +1,7 @@
 package table
 
 import (
+	"crypto/sha256"
 	"sync/atomic"
 	"time"
 
@@ -94,6 +95,53 @@ func (p *PitCsTree) Update() {
 		entry.pqItem = nil
 		p.onExpiration(entry)
 		p.RemoveInterest(entry)
+	}
+
+	// 中文说明：定时挑战（由 table.StartCsSha256Challenger 触发），在转发线程内重算 CS 条目的 sha256，
+	// 把 proof 发给 auditor 进行验证。
+	if popCsSha256ChallengeReq() {
+		p.auditSha256ChallengeOnce()
+	}
+}
+
+func (p *PitCsTree) auditSha256ChallengeOnce() {
+	now := time.Now()
+
+	// 注意：不要在 range csMap 时删除 map 元素；先收集需要删除的 index。
+	var toErase []uint64
+	nTotal := 0
+
+	for index, entry := range p.csMap {
+		nTotal++
+		computed := sha256.Sum256(entry.wire)
+		publishCsSha256Proof(CsSha256Proof{
+			Name:     entry.node.name.Clone(),
+			Index:    index,
+			Computed: computed,
+			Time:     now,
+		})
+
+		// 若与 CSNAT 中记录的叶子标签不一致，认为该缓存条目已损坏，标记删除。
+		if expected, ok := GetCsNatSha256Leaf(entry.node.name); ok && expected != computed {
+			toErase = append(toErase, index)
+		}
+	}
+
+	// 先打印汇总，再执行删除，方便定位“哪些条目触发了删除”。
+	for _, index := range toErase {
+		p.eraseCsDataFromReplacementStrategy(index)
+	}
+
+	if CfgCsAuditLogEnabled() {
+		nodeCount, activeLeafCount, rootAgg := GetCsNatSha256Stats()
+		core.Log.Info(nil, "【审计】挑战完成",
+			"nEntries", nTotal,
+			"nMismatched", len(toErase),
+			"csnatNodes", nodeCount,
+			"csnatLeaves", activeLeafCount,
+			"csnatRootAgg", rootAgg,
+			"time", now.Format(time.RFC3339Nano),
+		)
 	}
 }
 
@@ -367,6 +415,7 @@ func (p *PitCsTree) InsertData(data *defn.FwData, wire []byte) {
 		staleTime = staleTime.Add(data.MetaInfo.FreshnessPeriod.Unwrap())
 	}
 
+	// 中文说明：CS 内部会保存一份 wire 的拷贝，避免外部复用/修改底层切片导致缓存内容被意外改变。
 	store := make([]byte, len(wire))
 	copy(store, wire)
 
@@ -376,6 +425,17 @@ func (p *PitCsTree) InsertData(data *defn.FwData, wire []byte) {
 		entry.staleTime = staleTime
 
 		p.csReplacement.AfterRefresh(index, wire, data)
+		// 中文说明：审计事件中的 Wire 也需要独立拷贝，避免后续 CS 条目被刷新时复用同一 slice 造成审计端看到的数据变化。
+		auditWire := make([]byte, len(store))
+		copy(auditWire, store)
+		// 中文说明：发布“刷新缓存”事件（非阻塞；通道满会丢弃）。
+		publishCsAuditEvent(CsAuditEvent{
+			Type:      CsAuditEventRefresh,
+			Name:      data.NameV.Clone(),
+			Index:     index,
+			Wire:      auditWire,
+			StaleTime: staleTime,
+		})
 	} else {
 		// New entry
 		p.nCsEntries.Add(1)
@@ -391,6 +451,17 @@ func (p *PitCsTree) InsertData(data *defn.FwData, wire []byte) {
 
 		p.csMap[index] = node.csEntry
 		p.csReplacement.AfterInsert(index, wire, data)
+		// 中文说明：同上，给审计事件一份独立的 wire 拷贝。
+		auditWire := make([]byte, len(store))
+		copy(auditWire, store)
+		// 中文说明：发布“首次入缓存”事件（非阻塞；通道满会丢弃）。
+		publishCsAuditEvent(CsAuditEvent{
+			Type:      CsAuditEventInsert,
+			Name:      data.NameV.Clone(),
+			Index:     index,
+			Wire:      auditWire,
+			StaleTime: staleTime,
+		})
 
 		// Tell replacement strategy to evict entries if needed
 		p.csReplacement.EvictEntries()
@@ -401,6 +472,15 @@ func (p *PitCsTree) InsertData(data *defn.FwData, wire []byte) {
 // erase the data with the specified name from the Content Store.
 func (p *PitCsTree) eraseCsDataFromReplacementStrategy(index uint64) {
 	if entry, ok := p.csMap[index]; ok {
+		// 中文说明：在真正删除 CS 条目之前，发布“删除/淘汰”事件，供审计树同步更新。
+		publishCsAuditEvent(CsAuditEvent{
+			Type:      CsAuditEventErase,
+			Name:      entry.node.name.Clone(),
+			Index:     index,
+			Wire:      nil,
+			StaleTime: entry.staleTime,
+		})
+
 		entry.node.csEntry = nil
 		delete(p.csMap, index)
 		p.nCsEntries.Add(-1)

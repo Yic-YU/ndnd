@@ -63,6 +63,26 @@ ndnd -v
    - e2e 自动测试：直接重新运行 `e2e/runner.py ...`
    - 手动测试：退出 Mininet CLI（`exit`）后重新运行 `manual/start_topo.py ...`
 
+## 一次编译后的推荐启动方式（含审计环境变量）
+
+下面以“开启 CS SHA-256 审计挑战”为例，给出一套可复用的启动命令（每次重新编译后可直接照抄）。
+
+在 `ndnd/` 目录下：
+
+```bash
+make GOCACHE=/tmp/go-build
+export PATH=$PWD:$PATH
+
+# forwarder 单线程（做 CS 审计实验更省心）
+export NDND_FW_THREADS=1
+
+# 开启定时挑战（例如每 2 秒一次）与审计日志
+export NDND_CS_AUDIT_INTERVAL=2s
+export NDND_CS_AUDIT_LOG=1
+```
+
+注意：Mininet 必须用 `sudo -E` 才能把上述环境变量和 PATH 传进命名空间内的 `ndnd` 进程。
+
 ## 运行 Mini‑NDN e2e 场景
 
 使用 `sudo -E` 保留 PATH，确保 Mininet 命名空间里找到的是新编译的 `ndnd`。
@@ -97,6 +117,9 @@ NDND_SKIP_NFD=1 sudo -E python3 e2e/runner.py e2e/topo.big.conf
 sudo -E python3 ndnd/manual/start_topo.py ndnd/e2e/topo.big.conf
 ```
 
+提示：
+- 如果你当前就在 `ndnd/` 目录下，请用：`sudo -E python3 manual/start_topo.py e2e/topo.big.conf`（避免出现 `.../ndnd/ndnd/manual/...` 这类路径错误）。
+
 在 `mininet>` 里查看节点：
 
 ```text
@@ -115,6 +138,35 @@ mininet> l1 ndnd cat "/minindn/n1/hello"
 ```text
 hello ndn
 ```
+
+## 审计流程调试要点（CS SHA-256）
+
+1) 日志位置（每个节点一份）
+
+Mini‑NDN 会把 forwarder 的日志写到节点的 log 目录（例如节点 `b`）：
+
+```text
+mininet> b sh -c 'tail -n 200 -f /tmp/minindn/b/log/yanfd.log'
+```
+
+你应该能看到类似：
+- `【审计】发起定时挑战`
+- `【审计】挑战完成 nEntries=... nMismatched=... csnatNodes=... csnatLeaves=...`
+- 若发现损坏：`【审计】校验失败（sha256 不一致）`
+
+2) 管理面查询（可选）
+
+在 Mininet CLI 里（或宿主机上用对应 socket 的 client.conf）可以用 `nfdc` 子命令查询：
+
+```text
+mininet> b ndnd fw cs-info
+mininet> b ndnd fw cs-audit-agg
+mininet> b ndnd fw cs-audit-agg /minindn
+```
+
+说明：
+- `cs-audit-agg` 返回的是“前缀子树聚合标签”，更适合对象/分段名场景。
+- 精确 leaf 查询要求使用“精确缓存条目的 Name”（通常包含版本/分段）。若你只拿到对象基名（如 `/minindn/a/hello`），更推荐用 `cs-audit-agg /minindn/a/hello`。
 
 ## 备注
 

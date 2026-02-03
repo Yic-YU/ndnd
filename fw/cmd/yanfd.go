@@ -63,6 +63,18 @@ func (y *YaNFD) Start() {
 	// Create null face
 	face.MakeNullLinkService(face.MakeNullTransport()).Run(nil)
 
+	// 中文说明：启动同机进程内的 CS SHA-256 审计者。
+	// - 当前阶段：在“入缓存/刷新缓存”时对 Data wire 做 sha256，并写入 CSNAT（前缀聚合树）。
+	// - 后续阶段：可加入淘汰/删除事件、命中时重算对比、或升级为 BLS 聚合标签等。
+	table.StartCsSha256Auditor()
+
+	// 中文说明：可选的“定时挑战”。
+	// - 设置环境变量 NDND_CS_AUDIT_INTERVAL（如 5s）后启用：定时触发转发线程重算 CS 条目的 sha256，并验证是否与 CSNAT 一致。
+	if interval := table.CfgCsSha256ChallengeInterval(); interval > 0 {
+		table.StartCsSha256Challenger(interval)
+		table.StartCsSha256Verifier()
+	}
+
 	// Start management thread
 	go mgmt.MakeMgmtThread().Run()
 

@@ -80,7 +80,9 @@ faces:
 
 fw:
   # Number of forwarding threads
-  threads: 8
+  # 提示：每个转发线程都有独立的 PIT/CS。若你在做“缓存审计/CSNAT”实验，想避免跨线程重复缓存导致的复杂性，
+  # 可先把 threads 设为 1（单线程）以简化挑战与一致性问题。
+  threads: 1
   # Size of queues in the forwarding system
   queue_size: 1024
   # If true, face threads will be locked to processor cores
@@ -97,6 +99,7 @@ tables:
     # total capacity of all content stores in the forwarder will be the number of threads
     # multiplied by this value. This is the startup configuration value and can be changed at
     # runtime via management.
+    # 提示：这是“每个线程”的容量，总容量约为 threads * capacity。
     capacity: 1024
     # Whether contents will be admitted to the Content Store.
     admit: true

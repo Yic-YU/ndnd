@@ -57,6 +57,7 @@ func MakeMgmtThread() *Thread {
 	}
 
 	m.registerModule("cs", new(ContentStoreModule))
+	m.registerModule("cs-audit", new(CsAuditModule))
 	m.registerModule("faces", new(FaceModule))
 	m.registerModule("fib", new(FIBModule))
 	m.registerModule("rib", new(RIBModule))
