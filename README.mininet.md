@@ -24,52 +24,9 @@ make GOCACHE=/tmp/go-build
 
 ## 安装 NFD 工具链（提供 `nfd-stop`）
 
-Mini‑NDN 在清理阶段会调用 `nfd-stop`，因此即使你使用的是 Go 版 `ndnd`，也需要安装 NFD 工具链或提供同名脚本。
+Mini‑NDN 清理阶段会调用 `nfd-stop`，因此即使使用 Go 版 `ndnd`，也需要安装 NFD 工具链或提供同名脚本。
 
-### 方式 A：使用 NDN PPA（推荐，若可用）
-
-```bash
-sudo apt install software-properties-common
-sudo add-apt-repository ppa:named-data/ppa
-sudo apt update
-sudo apt install nfd
-```
-
-如果 `add-apt-repository` 报错类似：
-
-```
-E: The repository 'https://ppa.launchpadcontent.net/named-data/ppa/ubuntu noble Release' does not have a Release file.
-```
-
-说明当前 Ubuntu 版本暂无该 PPA，请使用方式 B（源码安装）。
-
-### 方式 B：从源码安装（PPA 不可用时）
-
-安装依赖：
-
-```bash
-sudo apt install build-essential pkg-config libboost-all-dev \
-  libsqlite3-dev libssl-dev libpcap-dev libsystemd-dev
-```
-
-编译并安装 `ndn-cxx` 和 `NFD`：
-
-```bash
-git clone https://github.com/named-data/ndn-cxx.git
-git clone --recursive https://github.com/named-data/NFD.git
-
-cd ndn-cxx
-./waf configure --prefix=/usr --sysconfdir=/etc
-./waf
-sudo ./waf install
-
-cd ../NFD
-./waf configure --prefix=/usr --sysconfdir=/etc
-./waf
-sudo ./waf install
-```
-
-安装完成后应能找到 `nfd-start` / `nfd-stop`。
+建议优先走 NDN PPA；若当前系统版本没有 PPA 包，则按官方文档用源码安装 `ndn-cxx` + `NFD`。
 
 ## 确保使用的是新编译的二进制
 
@@ -96,18 +53,11 @@ sudo -E python3 e2e/runner.py
 - 在每个节点启动 `ndnd fw`
 - 启动 `ndnd dv` 并等待路由收敛
 
-## 常见问题排查
+## 常见问题排查（简版）
 
-- **Go build 缓存权限错误**
-  - 现象：`/root/.cache/go-build` 下 `permission denied`
-  - 解决：指定可写缓存目录：
-    ```bash
-    make GOCACHE=/tmp/go-build
-    ```
-
-- **`sudo` 失败或要求输入密码**
-  - Mininet 需要 root。确保环境允许 `sudo -E`。
-  - 若无法使用 `sudo`，则无法运行基于 Mininet 的流程。
+- Go build 缓存权限：用 `make GOCACHE=/tmp/go-build`
+- 默认拓扑缺失：自建 `e2e/topo.min.conf` 后传入路径
+- NFD 工具缺失：跳过 NFD 场景运行 `NDND_SKIP_NFD=1`
 
 ## 备注
 

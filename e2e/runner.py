@@ -42,7 +42,10 @@ if __name__ == '__main__':
     ndn.start()
 
     run(test_001.scenario_ndnd_fw)
-    run(test_001.scenario_nfd)
+    if os.environ.get('NDND_SKIP_NFD', '0') == '1':
+        info('Skipping NFD scenario (NDND_SKIP_NFD=1)\n')
+    else:
+        run(test_001.scenario_nfd)
     run(test_002.scenario)
 
     ndn.stop()
