@@ -40,6 +40,29 @@ ndnd -v
 
 预期：`which ndnd` 指向仓库根目录的 `ndnd`，`ndnd -v` 显示当前版本。
 
+## 修改源码后的继续使用
+
+查看当前使用的 `ndnd` 版本（建议在 `ndnd/` 目录下执行）：
+
+```bash
+which ndnd
+ndnd -v
+```
+
+修改源码后：
+
+1. 重新编译：
+   ```bash
+   make GOCACHE=/tmp/go-build
+   ```
+2. 确认版本已更新：
+   ```bash
+   ndnd -v
+   ```
+3. 重新启动场景（运行中的 `ndnd` 进程不会自动切换到新二进制）：
+   - e2e 自动测试：直接重新运行 `e2e/runner.py ...`
+   - 手动测试：退出 Mininet CLI（`exit`）后重新运行 `manual/start_topo.py ...`
+
 ## 运行 Mini‑NDN e2e 场景
 
 使用 `sudo -E` 保留 PATH，确保 Mininet 命名空间里找到的是新编译的 `ndnd`。
@@ -62,6 +85,7 @@ NDND_SKIP_NFD=1 sudo -E python3 e2e/runner.py e2e/topo.big.conf
 - Go build 缓存权限：用 `make GOCACHE=/tmp/go-build`
 - 默认拓扑缺失：自建 `e2e/topo.min.conf` 后传入路径
 - NFD 工具缺失：跳过 NFD 场景运行 `NDND_SKIP_NFD=1`
+  - 大拓扑建议按需加大收敛等待：`NDND_CONVERGE_DEADLINE=300 ...`
 
 ## 手动测试：hello ndn
 
@@ -94,5 +118,4 @@ hello ndn
 
 ## 备注
 
-- 本流程适用于 Go 版本 `ndnd`，不是 C++ 的 NFD。
-- 如果之后修改了 Go 源码，需要重新编译并按上述流程再次运行。
+- 本流程关注 `ndnd` 的 forwarder（`ndnd fw`）与路由（`ndnd dv`）。
