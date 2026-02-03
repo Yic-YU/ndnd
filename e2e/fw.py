@@ -23,12 +23,23 @@ class NDNd_FW(Application):
             'GOMAXPROCS': str(threads),
         }
 
+        # Ensure the unix socket directory exists (shared FS, but required for binding).
+        self.node.cmd('mkdir -p /run/nfd')
+        self.node.cmd(f'rm -f {self.sockFile}')
+
         # Make default configuration
         default_config = {
             'core': {
                 'log_level': logLevel,
             },
             'faces': {
+                # dv.py uses udp4://<neighbor-ip>:6363, so enable unicast UDP listener explicitly.
+                # Disable multicast to avoid unexpected multicast interface behavior in Mininet.
+                'udp': {
+                    'enabled_unicast': True,
+                    'enabled_multicast': False,
+                    'port_unicast': 6363,
+                },
                 'unix': {
                     'socket_path': self.sockFile,
                 },
