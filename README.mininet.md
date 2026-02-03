@@ -45,7 +45,7 @@ ndnd -v
 使用 `sudo -E` 保留 PATH，确保 Mininet 命名空间里找到的是新编译的 `ndnd`。
 
 ```bash
-sudo -E python3 e2e/runner.py
+NDND_SKIP_NFD=1 sudo -E python3 e2e/runner.py e2e/topo.big.conf
 ```
 
 这条命令会：
@@ -53,11 +53,44 @@ sudo -E python3 e2e/runner.py
 - 在每个节点启动 `ndnd fw`
 - 启动 `ndnd dv` 并等待路由收敛
 
+说明：
+- `NDND_SKIP_NFD=1`：跳过不需要的 NFD 场景（仅保留 ndnd 的 forwarder + dv）。
+- `e2e/topo.big.conf`：示例大拓扑（8 个核心环 + 8 个叶子节点）。
+
 ## 常见问题排查（简版）
 
 - Go build 缓存权限：用 `make GOCACHE=/tmp/go-build`
 - 默认拓扑缺失：自建 `e2e/topo.min.conf` 后传入路径
 - NFD 工具缺失：跳过 NFD 场景运行 `NDND_SKIP_NFD=1`
+
+## 手动测试：hello ndn
+
+如果你希望启动大拓扑、等待路由收敛后手动执行 `put/cat`，可以使用脚本 `manual/start_topo.py`。
+
+启动并进入 Mininet CLI：
+
+```bash
+sudo -E python3 ndnd/manual/start_topo.py ndnd/e2e/topo.big.conf
+```
+
+在 `mininet>` 里查看节点：
+
+```text
+mininet> nodes
+```
+
+例如选择 `n1` 作为 producer、`l1` 作为 consumer：
+
+```text
+mininet> n1 sh -c 'echo -n "hello ndn" | ndnd put --expose "/minindn/n1/hello" &'
+mininet> l1 ndnd cat "/minindn/n1/hello"
+```
+
+预期输出：
+
+```text
+hello ndn
+```
 
 ## 备注
 
