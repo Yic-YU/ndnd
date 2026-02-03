@@ -168,6 +168,10 @@ mininet> b ndnd fw cs-audit-flip "/minindn/n1/hello/v=1770157398424886/seg=0"
 说明：
 - `cs-audit-agg` 返回的是“前缀子树聚合标签”，更适合对象/分段名场景。
 - 精确 leaf 查询要求使用“精确缓存条目的 Name”（通常包含版本/分段）。若你只拿到对象基名（如 `/minindn/a/hello`），更推荐用 `cs-audit-agg /minindn/a/hello`。
+- **重要：** 对于由 `ndnd put/cat` 产生的对象，CS 实际缓存的是 Data 分段（如 `/minindn/a/hello/v=.../seg=0`）以及可能的 metadata（如 `/minindn/a/hello/32=metadata/v=.../seg=0`）。因此：
+  - `cs-audit-leaf "/minindn/a/hello/v=..."`（不带 `seg`）可能会因为不是“精确条目名”而查询失败/不稳定。
+  - 推荐直接查 `seg=0`：`cs-audit-leaf "/minindn/a/hello/v=<版本>/seg=0"`，或优先使用 `cs-audit-agg "/minindn/a/hello"` 做前缀级验证。
+- 若你直接手工发 Interest 查询 `leaf/agg`，当目标 name/prefix 末尾带有 `v=...` 版本组件时，必须在最后额外追加一个 `/_` 组件；`ndnd fw cs-audit-*` 已自动处理该兼容问题。
 - `cs-audit-flip` 的参数必须是“精确缓存条目名”，其中 `v=...`、`seg=...` 这类组件必须是十进制数字；不要传入 `...` 这样的占位符。
 - 你可以先执行一次 `ndnd cat "/minindn/n1/hello" >/dev/null`，从输出的 `Object fetched ...` 里拷贝版本号，再拼成 `/.../v=<版本>/seg=0` 去翻转。
 - `cs-audit-flip` 也支持只传到 `/.../v=<版本>`（不带 `seg`），它会自动尝试翻转 `seg=0`。

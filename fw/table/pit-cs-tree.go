@@ -446,6 +446,14 @@ func (p *PitCsTree) InsertData(data *defn.FwData, wire []byte) {
 			Wire:      auditWire,
 			StaleTime: staleTime,
 		})
+		if CfgCsAuditLogEnabled() {
+			core.Log.Info(nil, "【审计】CS 缓存刷新（Refresh）",
+				"name", data.NameV,
+				"index", index,
+				"wireLen", len(store),
+				"staleTime", staleTime.Format(time.RFC3339Nano),
+			)
+		}
 	} else {
 		// New entry
 		p.nCsEntries.Add(1)
@@ -472,6 +480,14 @@ func (p *PitCsTree) InsertData(data *defn.FwData, wire []byte) {
 			Wire:      auditWire,
 			StaleTime: staleTime,
 		})
+		if CfgCsAuditLogEnabled() {
+			core.Log.Info(nil, "【审计】CS 缓存写入（Insert）",
+				"name", data.NameV,
+				"index", index,
+				"wireLen", len(store),
+				"staleTime", staleTime.Format(time.RFC3339Nano),
+			)
+		}
 
 		// Tell replacement strategy to evict entries if needed
 		p.csReplacement.EvictEntries()

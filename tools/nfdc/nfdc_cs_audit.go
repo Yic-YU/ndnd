@@ -30,7 +30,9 @@ func (t *Tool) ExecCsAuditAgg(_ *cobra.Command, args []string) {
 	suffix := enc.Name{
 		enc.NewGenericComponent("cs-audit"),
 		enc.NewGenericComponent("agg"),
-	}.Append(prefix...)
+	}.Append(prefix...).
+		// 中文说明：追加一个 "_"，避免 forwarder 生成 status dataset 时的 WithVersion() 把 prefix 末尾的版本组件误覆盖。
+		Append(enc.NewGenericComponent("_"))
 
 	data, err := t.fetchStatusDataset(suffix)
 	if err != nil {
@@ -57,7 +59,9 @@ func (t *Tool) ExecCsAuditLeaf(_ *cobra.Command, args []string) {
 	suffix := enc.Name{
 		enc.NewGenericComponent("cs-audit"),
 		enc.NewGenericComponent("leaf"),
-	}.Append(name...)
+	}.Append(name...).
+		// 中文说明：追加一个 "_"，避免 forwarder 生成 status dataset 时的 WithVersion() 把“目标 name 的版本组件”误覆盖。
+		Append(enc.NewGenericComponent("_"))
 
 	data, err := t.fetchStatusDataset(suffix)
 	if err != nil {

@@ -64,6 +64,10 @@ func (m *CsAuditModule) agg(interest *Interest) {
 	} else {
 		prefix = enc.Name{}
 	}
+	// 中文说明：nfdc 会在末尾追加 "_"（避免 status dataset WithVersion 覆盖 prefix 末尾的版本组件）。
+	if len(prefix) > 0 && prefix.At(-1).IsGeneric("_") {
+		prefix = prefix.Prefix(-1)
+	}
 
 	sum, ok := table.GetCsNatSha256Agg(prefix)
 	if !ok {
@@ -79,7 +83,9 @@ func (m *CsAuditModule) agg(interest *Interest) {
 	name := LOCAL_PREFIX.
 		Append(enc.NewGenericComponent("cs-audit")).
 		Append(enc.NewGenericComponent("agg")).
-		Append(prefix...)
+		Append(prefix...).
+		// 中文说明：追加 "_"，保证 dataset 的版本组件不会覆盖 prefix 自带的版本组件。
+		Append(enc.NewGenericComponent("_"))
 	m.manager.sendStatusDataset(interest, name, enc.Wire{buf})
 }
 
@@ -138,6 +144,10 @@ func (m *CsAuditModule) leaf(interest *Interest) {
 		return
 	}
 	target := interest.Name()[len(LOCAL_PREFIX)+2:]
+	// 中文说明：nfdc 会在末尾追加 "_"（避免 status dataset WithVersion 覆盖目标 name 的版本组件）。
+	if len(target) > 0 && target.At(-1).IsGeneric("_") {
+		target = target.Prefix(-1)
+	}
 
 	sum, ok := table.GetCsNatSha256Leaf(target)
 	if !ok {
@@ -151,7 +161,9 @@ func (m *CsAuditModule) leaf(interest *Interest) {
 	name := LOCAL_PREFIX.
 		Append(enc.NewGenericComponent("cs-audit")).
 		Append(enc.NewGenericComponent("leaf")).
-		Append(target...)
+		Append(target...).
+		// 中文说明：追加 "_"，保证 dataset 的版本组件不会覆盖目标 name 自带的版本组件。
+		Append(enc.NewGenericComponent("_"))
 
 	m.manager.sendStatusDataset(interest, name, enc.Wire{buf})
 }
