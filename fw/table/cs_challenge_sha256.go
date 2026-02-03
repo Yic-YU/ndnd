@@ -10,10 +10,10 @@ import (
 	enc "github.com/named-data/ndnd/std/encoding"
 )
 
-// CsSha256Proof 是 CS 对“挑战”给出的证明（当前阶段为 sha256）。
+// CsSha256Proof 是 CS 对“挑战”给出的证明（当前阶段为 BLSTag，占位实现为 HMAC-SHA256）。
 //
 // 中文说明：
-// - 该证明由 CS 在转发线程内对当前缓存条目重新计算 sha256 得到（用于检测缓存静默损坏/篡改）。
+// - 该证明由 CS 在转发线程内对当前缓存条目重新计算 BLSTag 得到（用于检测缓存静默损坏/篡改）。
 // - Auditor 收到后，再与 CSNAT 中记录的“期望标签”对比即可。
 type CsSha256Proof struct {
 	Name     enc.Name
@@ -61,7 +61,7 @@ func CfgCsAuditLogEnabled() bool {
 	}
 }
 
-// StartCsSha256Challenger 启动定时挑战器：周期性触发一次“全表重算 sha256”的挑战。
+// StartCsSha256Challenger 启动定时挑战器：周期性触发一次“全表重算 BLSTag”的挑战。
 //
 // 中文说明：
 // - 它不会直接访问 CS（避免跨 goroutine 访问 PIT/CS）。
@@ -134,7 +134,7 @@ func StartCsSha256Verifier() {
 						badSamples = append(badSamples,
 							proof.Name.String()+": exp="+hex.EncodeToString(expected[:8])+" got="+hex.EncodeToString(proof.Computed[:8]))
 					}
-					core.Log.Warn(nil, "【审计】校验失败（sha256 不一致）", "name", proof.Name)
+					core.Log.Warn(nil, "【审计】校验失败（BLSTag 不一致）", "name", proof.Name)
 				} else if CfgCsAuditLogEnabled() {
 					nOK++
 				}

@@ -1,7 +1,6 @@
 package table
 
 import (
-	"crypto/sha256"
 	"sync"
 
 	enc "github.com/named-data/ndnd/std/encoding"
@@ -13,7 +12,7 @@ var csNatSha256 = newCsNatSha256Tree()
 // StartCsSha256Auditor 启动一个同机进程内的“SHA-256 审计者”。
 //
 // 中文说明：
-// - 审计者会持续从 CsAuditEvents 读取事件，对 ev.Wire 做 sha256，并写入 CSNAT（前缀聚合树）。
+// - 审计者会持续从 CsAuditEvents 读取事件，对 (Name, Wire) 计算 BLSTag，并写入 CSNAT（前缀聚合树）。
 // - 该函数是幂等的：多次调用只会启动一次 goroutine。
 func StartCsSha256Auditor() {
 	csSha256StartOnce.Do(func() {
@@ -21,13 +20,13 @@ func StartCsSha256Auditor() {
 			for ev := range CsAuditEvents {
 				switch ev.Type {
 				case CsAuditEventInsert:
-					sum := sha256.Sum256(ev.Wire)
-					// 中文说明：把 sha256(ev.Wire) 当作当前阶段的“审计标签”（tag），写入 CSNAT 的对应叶子节点，
+					tag := ComputeCsAuditBlstag(ev.Name, ev.Wire)
+					// 中文说明：把 BLSTag(Name, Wire) 当作当前阶段的“审计标签”（tag），写入 CSNAT 的对应叶子节点，
 					// 并触发沿路径向上的聚合值重算。
-					csNatSha256.OnInsert(ev.Name, sum, ev.StaleTime)
+					csNatSha256.OnInsert(ev.Name, tag, ev.StaleTime)
 				case CsAuditEventRefresh:
-					sum := sha256.Sum256(ev.Wire)
-					csNatSha256.OnRefresh(ev.Name, sum, ev.StaleTime)
+					tag := ComputeCsAuditBlstag(ev.Name, ev.Wire)
+					csNatSha256.OnRefresh(ev.Name, tag, ev.StaleTime)
 				case CsAuditEventErase:
 					// 中文说明：CS 淘汰/删除时，清除叶子标签并尽可能剪枝，保证 CSNAT 与真实 CS 一致。
 					_ = csNatSha256.OnErase(ev.Name)

@@ -72,14 +72,19 @@ func Cmds() []*cobra.Command {
 		Run:   t.ExecCsInfo,
 	}, {
 		Use:   "cs-audit-agg [/prefix]",
-		Short: "Query CS audit aggregated sha256 tag by prefix (empty = root)",
+		Short: "Query CS audit aggregated tag by prefix (empty = root)",
 		Args:  cobra.RangeArgs(0, 1),
 		Run:   t.ExecCsAuditAgg,
 	}, {
 		Use:   "cs-audit-leaf /name",
-		Short: "Query CS audit leaf sha256 tag by exact name",
+		Short: "Query CS audit leaf tag by exact name",
 		Args:  cobra.ExactArgs(1),
 		Run:   t.ExecCsAuditLeaf,
+	}, {
+		Use:   "cs-audit-flip /name",
+		Short: "Flip 1 random bit in a cached packet (debug only)",
+		Args:  cobra.ExactArgs(1),
+		Run:   t.ExecCsAuditFlip,
 	}, {
 		Use:   "strategy-list",
 		Short: "Print strategy choices",

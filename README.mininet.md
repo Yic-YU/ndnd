@@ -139,7 +139,7 @@ mininet> l1 ndnd cat "/minindn/n1/hello"
 hello ndn
 ```
 
-## 审计流程调试要点（CS SHA-256）
+## 审计流程调试要点（CS 审计：BLSTag + 聚合哈希）
 
 1) 日志位置（每个节点一份）
 
@@ -152,7 +152,7 @@ mininet> b sh -c 'tail -n 200 -f /tmp/minindn/b/log/yanfd.log'
 你应该能看到类似：
 - `【审计】发起定时挑战`
 - `【审计】挑战完成 nEntries=... nMismatched=... csnatNodes=... csnatLeaves=...`
-- 若发现损坏：`【审计】校验失败（sha256 不一致）`
+- 若发现损坏：`【审计】校验失败（BLSTag 不一致）`
 
 2) 管理面查询（可选）
 
@@ -162,11 +162,17 @@ mininet> b sh -c 'tail -n 200 -f /tmp/minindn/b/log/yanfd.log'
 mininet> b ndnd fw cs-info
 mininet> b ndnd fw cs-audit-agg
 mininet> b ndnd fw cs-audit-agg /minindn
+mininet> b ndnd fw cs-audit-flip "/minindn/n1/hello/v=1770157398424886/seg=0"
 ```
 
 说明：
 - `cs-audit-agg` 返回的是“前缀子树聚合标签”，更适合对象/分段名场景。
 - 精确 leaf 查询要求使用“精确缓存条目的 Name”（通常包含版本/分段）。若你只拿到对象基名（如 `/minindn/a/hello`），更推荐用 `cs-audit-agg /minindn/a/hello`。
+- `cs-audit-flip` 的参数必须是“精确缓存条目名”，其中 `v=...`、`seg=...` 这类组件必须是十进制数字；不要传入 `...` 这样的占位符。
+- 你可以先执行一次 `ndnd cat "/minindn/n1/hello" >/dev/null`，从输出的 `Object fetched ...` 里拷贝版本号，再拼成 `/.../v=<版本>/seg=0` 去翻转。
+- `cs-audit-flip` 也支持只传到 `/.../v=<版本>`（不带 `seg`），它会自动尝试翻转 `seg=0`。
+- 若对象内容很小，可能只有单个 Data 包（无 `seg` 组件），此时传 `/.../seg=0` 找不到；建议直接对 `/.../v=<版本>` 执行 `cs-audit-flip`。
+- `cs-audit-flip` 会对指定条目的缓存 wire 随机翻转 1 bit（仅用于验证审计能否检测到损坏），下一次挑战应出现 `nMismatched>0`，并触发删除。
 
 ## 备注
 

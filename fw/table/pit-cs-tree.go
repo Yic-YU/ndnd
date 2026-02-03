@@ -1,7 +1,6 @@
 package table
 
 import (
-	"crypto/sha256"
 	"sync/atomic"
 	"time"
 
@@ -97,7 +96,17 @@ func (p *PitCsTree) Update() {
 		p.RemoveInterest(entry)
 	}
 
-	// 中文说明：定时挑战（由 table.StartCsSha256Challenger 触发），在转发线程内重算 CS 条目的 sha256，
+	// 中文说明：处理“人为翻转缓存条目比特”的调试请求（来自管理线程）。
+	// 该操作会直接修改 CS 条目的 wire，用于验证审计挑战能否发现静默损坏。
+	for {
+		req, ok := popCsAuditFlipReq()
+		if !ok {
+			break
+		}
+		p.handleCsAuditFlipReq(req)
+	}
+
+	// 中文说明：定时挑战（由 table.StartCsSha256Challenger 触发），在转发线程内重算 CS 条目的 BLSTag，
 	// 把 proof 发给 auditor 进行验证。
 	if popCsSha256ChallengeReq() {
 		p.auditSha256ChallengeOnce()
@@ -113,7 +122,8 @@ func (p *PitCsTree) auditSha256ChallengeOnce() {
 
 	for index, entry := range p.csMap {
 		nTotal++
-		computed := sha256.Sum256(entry.wire)
+		// 中文说明：挑战时在转发线程内重算 BLSTag（当前占位实现为 HMAC-SHA256），用于检测缓存 wire 是否被篡改。
+		computed := ComputeCsAuditBlstag(entry.node.name, entry.wire)
 		publishCsSha256Proof(CsSha256Proof{
 			Name:     entry.node.name.Clone(),
 			Index:    index,

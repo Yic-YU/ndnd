@@ -15,8 +15,8 @@ import (
 // 中文说明：
 //   - 结构：按 NDN Name 组件分层的多叉树/Trie（每一层一个 component）。
 //   - 叶子：每个被缓存的 Data name（精确名）对应一个叶子条目（节点可同时有 children）。
-//   - 标签：这里用 sha256(DataWire) 作为临时审计标签（可视为 BLSTag 的占位实现）。
-//   - 聚合：SHA-256 不具备同态加法，因此用“Merkle 化”的聚合：父节点的 Agg 由自己的叶子标签 + 所有子节点的 Agg 计算得到，
+//   - 标签：这里用 BLSTag(Name, Wire) 作为叶子审计标签（当前占位实现为 HMAC-SHA256；后续可替换为真正 BLS 签名标签）。
+//   - 聚合：聚合仍采用 SHA-256 的“Merkle 化”方式：父节点的 Agg 由自己的叶子标签 + 所有子节点的 Agg 计算得到，
 //     支持按 Prefix 查询子树的聚合值。
 type CsNatSha256Tree struct {
 	mu   sync.RWMutex
@@ -44,6 +44,7 @@ type csNatSha256Node struct {
 	agg [32]byte
 }
 
+// 中文说明：这是“聚合哈希”的域分离标识；即使叶子标签从纯 sha256 切换到 BLSTag，这个值也可以保持不变。
 var csNatSha256Domain = []byte("ndnd-csnat-sha256-v1")
 
 func newCsNatSha256Tree() *CsNatSha256Tree {
