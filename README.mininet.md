@@ -79,6 +79,14 @@ export NDND_FW_THREADS=1
 # 开启定时挑战（例如每 2 秒一次）与审计日志
 export NDND_CS_AUDIT_INTERVAL=2s
 export NDND_CS_AUDIT_LOG=1
+
+# （可选）开启 SEU 比特翻转注入器（泊松过程），模拟缓存静默损坏
+# - SEU 率单位：bit^-1·day^-1（默认 1.51e-7）
+# - 默认仅对 /minindn 前缀下的缓存条目注入，避免影响 /localhost 管理面数据
+export NDND_CS_SEU_ENABLE=1
+export NDND_CS_SEU_RATE_PER_BIT_PER_DAY=1.51e-7
+export NDND_CS_SEU_PREFIX=/minindn
+export NDND_CS_SEU_LOG=1
 ```
 
 注意：Mininet 必须用 `sudo -E` 才能把上述环境变量和 PATH 传进命名空间内的 `ndnd` 进程。
@@ -153,6 +161,7 @@ mininet> b sh -c 'tail -n 200 -f /tmp/minindn/b/log/yanfd.log'
 - `【审计】发起定时挑战`
 - `【审计】挑战完成 nEntries=... nMismatched=... csnatNodes=... csnatLeaves=...`
 - 若发现损坏：`【审计】校验失败（BLSTag 不一致）`
+- 若开启 SEU 注入器：偶尔会看到 `【审计】SEU 注入：随机比特翻转（泊松过程）`，随后下一次挑战应出现 `nMismatched>0` 并触发删除。
 
 2) 管理面查询（可选）
 
@@ -177,6 +186,19 @@ mininet> b ndnd fw cs-audit-flip "/minindn/n1/hello/v=1770157398424886/seg=0"
 - `cs-audit-flip` 也支持只传到 `/.../v=<版本>`（不带 `seg`），它会自动尝试翻转 `seg=0`。
 - 若对象内容很小，可能只有单个 Data 包（无 `seg` 组件），此时传 `/.../seg=0` 找不到；建议直接对 `/.../v=<版本>` 执行 `cs-audit-flip`。
 - `cs-audit-flip` 会对指定条目的缓存 wire 随机翻转 1 bit（仅用于验证审计能否检测到损坏），下一次挑战应出现 `nMismatched>0`，并触发删除。
+
+3) SEU 比特翻转注入器（可选）
+
+中文说明：注入器会按泊松过程在 CS 中“静默翻转 1 bit”，用于模拟 SEU（Single Event Upset）并触发审计检测。
+
+相关环境变量（默认关闭）：
+- `NDND_CS_SEU_ENABLE=1`：启用注入器（不设置/设为 0 则不启用）。
+- `NDND_CS_SEU_RATE_PER_BIT_PER_DAY=1.51e-7`：SEU 率，单位 `bit^-1·day^-1`（不设置则使用默认值 `1.51e-7`）。
+- `NDND_CS_SEU_PREFIX=/minindn`：只对该前缀下的 CS 条目注入（不设置默认 `/minindn`；设置为空可对全表注入，但不推荐，会影响管理面/路由数据）。
+- `NDND_CS_SEU_LOG=1`：输出 `【审计】SEU 注入...` 日志（不设置则默认跟随 `NDND_CS_AUDIT_LOG`）。
+
+注意：
+- 使用真实 SEU 率时，如果 CS 总数据量很小，翻转事件可能很久才发生一次（这是正常现象）。
 
 ## 备注
 

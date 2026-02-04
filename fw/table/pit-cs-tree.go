@@ -31,6 +31,9 @@ type PitCsTree struct {
 	pitExpiryQueue priority_queue.Queue[*nameTreePitEntry, int64]
 	updateTicker   *time.Ticker
 	onExpiration   OnPitExpiration
+
+	// 中文说明：SEU（Single Event Upset）注入器的下一次触发时间（泊松过程采样得到）。
+	csSeuNext time.Time
 }
 
 type nameTreePitEntry struct {
@@ -105,6 +108,9 @@ func (p *PitCsTree) Update() {
 		}
 		p.handleCsAuditFlipReq(req)
 	}
+
+	// 中文说明：SEU 注入器（泊松过程）——按给定 bit^-1·day^-1 概率对 CS 条目随机翻转 1 bit（静默损坏模拟）。
+	p.seuMaybeInject(time.Now())
 
 	// 中文说明：定时挑战（由 table.StartCsSha256Challenger 触发），在转发线程内重算 CS 条目的 BLSTag，
 	// 把 proof 发给 auditor 进行验证。
