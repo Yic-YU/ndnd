@@ -1,0 +1,75 @@
+router
+
+# node  comment     yPos     xPos
+Node102    NA    9     6
+Node202    NA    10    8
+Node302    NA    9    10
+Node402    NA    10    12
+Node201    NA    8    8
+Nodesanya    NA    11    14
+Node503    NA    12    16
+Node603    NA    13    18
+Node106    NA    14    20
+Node303    NA    12    10
+Node103    NA    12    6
+Node203    NA    13    8
+Node403    NA    13    12
+Node602    NA    10    18
+Node107    NA    11    20
+Node502    NA    9    16
+Node204    NA    17    9
+NodeKiruha_Station_13m    NA    16    7
+Node104    NA    15    6
+Node304    NA    16    10
+NodeKashi_Ground_Station    NA    13    11
+NodeMiyun_Ground_Station    NA    13    15
+Node504    NA    16    16
+Node404    NA    17    14
+Node604    NA    17    19
+Node105    NA    18    28
+
+link
+
+# srcNode   dstNode     bandwidth   metric  delay   queue
+Nodesanya    Node402    10Mbps    1    10ms    100
+Nodesanya    Node502    10Mbps    1    10ms    100
+Node102    Node103    10Mbps    1    10ms    100
+Node102    Node202    10Mbps    1    10ms    100
+Node103    Node203    10Mbps    1    10ms    100
+Node104    Node103    10Mbps    1    10ms    100
+Node104    Node105    10Mbps    1    10ms    100
+Node105    Node106    10Mbps    1    10ms    100
+Node106    Node107    10Mbps    1    10ms    100
+Node106    Node603    10Mbps    1    10ms    100
+Node107    Node602    10Mbps    1    10ms    100
+Node201    Node202    10Mbps    1    10ms    100
+Node202    Node302    10Mbps    1    10ms    100
+Node203    Node303    10Mbps    1    10ms    100
+Node302    Node402    10Mbps    1    10ms    100
+Node303    Node403    10Mbps    1    10ms    100
+Node402    Node403    10Mbps    1    10ms    100
+Node402    Node502    10Mbps    1    10ms    100
+Node502    Node503    10Mbps    1    10ms    100
+Node502    Node602    10Mbps    1    10ms    100
+Node503    Node603    10Mbps    1    10ms    100
+Node204    NodeKiruha_Station_13m    10Mbps    1    10ms    100
+Node104    NodeKiruha_Station_13m    10Mbps    1    10ms    100
+Node203    Node204    10Mbps    1    10ms    100
+Node304    Node204    10Mbps    1    10ms    100
+Node304    Node303    10Mbps    1    10ms    100
+Node202    Node203    10Mbps    1    10ms    100
+Node302    Node303    10Mbps    1    10ms    100
+NodeKashi_Ground_Station    Node303    10Mbps    1    10ms    100
+NodeKashi_Ground_Station    Node403    10Mbps    1    10ms    100
+NodeMiyun_Ground_Station    Node403    10Mbps    1    10ms    100
+NodeMiyun_Ground_Station    Node503    10Mbps    1    10ms    100
+Node403    Node503    10Mbps    1    10ms    100
+Node404    Node504    10Mbps    1    10ms    100
+Node404    Node304    10Mbps    1    10ms    100
+Node404    Node403    10Mbps    1    10ms    100
+Node604    Node603    10Mbps    1    10ms    100
+Node604    Node504    10Mbps    1    10ms    100
+Node503    Node504    10Mbps    1    10ms    100
+Node105    Node604    10Mbps    1    10ms    100
+Node602    Node603    10Mbps    1    10ms    100
+NodeMiyun_Ground_Station    Node504    10Mbps    1    10ms    100

@@ -125,8 +125,16 @@ NDND_SKIP_NFD=1 sudo -E python3 e2e/runner.py e2e/topo.big.conf
 sudo -E python3 ndnd/manual/start_topo.py ndnd/e2e/topo.big.conf
 ```
 
+如果你想用 “scene4-2” 拓扑进入 Mininet CLI（用于手动 `put/cat`）：
+
+```bash
+sudo -E python3 ndnd/manual/start_topo.py ndnd/e2e/topo.scene4-2.conf
+```
+
 提示：
 - 如果你当前就在 `ndnd/` 目录下，请用：`sudo -E python3 manual/start_topo.py e2e/topo.big.conf`（避免出现 `.../ndnd/ndnd/manual/...` 这类路径错误）。
+  - scene4-2 对应：`sudo -E python3 manual/start_topo.py e2e/topo.scene4-2.conf`
+- scene4-2 拓扑里有短名映射（避免 Mininet 接口名超长），所以你会看到 `k13m/kashi/miyun/sanya` 这类节点名（详见 `e2e/topo.scene4-2.conf` 文件头注释）。
 
 在 `mininet>` 里查看节点：
 
